@@ -1,7 +1,0 @@
-<odoo>
-    <template id="assets_notice" name="Gantt Free Assets" inherit_id="web.assets_backend">
-        <xpath expr="." position="inside">
-            <!-- Nada adicional: los assets se declaran en el manifest -->
-        </xpath>
-    </template>
-</odoo>
