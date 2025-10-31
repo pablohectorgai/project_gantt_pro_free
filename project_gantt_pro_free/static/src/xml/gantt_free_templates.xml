@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+  <t t-name="project_gantt_pro_free.GanttFreeController">
+    <div class="o_gantt_free_controller o-form-buttons o-flex o-gap-2 mb-2">
+      <button class="btn btn-secondary" t-on-click="reload">Reload</button>
+      <select class="form-select w-auto" t-on-change="setMode">
+        <option value="Day">Day</option>
+        <option value="Week" selected="1">Week</option>
+        <option value="Month">Month</option>
+      </select>
+    </div>
+    <div class="o_gantt_free_renderer">
+      <t t-component="'project_gantt_pro_free.GanttFreeRenderer'" t-props="props"/>
+    </div>
+  </t>
+
+  <t t-name="project_gantt_pro_free.GanttFreeRenderer">
+    <div class="o_gantt_free_canvas" style="height:70vh;"></div>
+  </t>
+
+</templates>
