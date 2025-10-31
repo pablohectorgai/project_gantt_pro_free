@@ -17,7 +17,6 @@
         ],
     },
     "data": [
-        "views/assets.xml",
         "views/project_task_gantt_view.xml",
     ],
     "application": False,
