@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { Component, onMounted, onWillUpdateProps, useExternalListener } from "@odoo/owl";
-import { useService } from "@web/core/utils/hooks";
+import { Component, onMounted, useExternalListener } from "@odoo/owl";
+import { useBus, useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 
 const isWeekend = (d) => {
@@ -23,16 +23,10 @@ function snapToWorkday(date, dir = "auto") {
 export class GanttFreeRenderer extends Component {
     setup() {
         this.notification = useService("notification");
-        onMounted(() => this._renderGantt(this.props));
-        onWillUpdateProps((nextProps) => {
-            if (
-                nextProps.reloadKey !== this.props.reloadKey ||
-                nextProps.viewMode !== this.props.viewMode
-            ) {
-                this._renderGantt(nextProps);
-            }
-        });
+        this.bus = useBus();
+        onMounted(() => this._renderGantt());
         useExternalListener(window, "resize", () => this._renderGantt());
+        this.bus.addEventListener("gantt_free:reload", () => this._renderGantt());
     }
 
     get model() {
@@ -59,15 +53,14 @@ export class GanttFreeRenderer extends Component {
         });
     }
 
-    async _renderGantt(props = this.props) {
-        const wrapper = this.el?.querySelector(".o_gantt_free_canvas");
+    async _renderGantt() {
+        const wrapper = this.el.querySelector(".o_gantt_free_canvas");
         if (!wrapper) {
             return;
         }
         wrapper.innerHTML = "";
 
-        const model = props.model || this.props.model;
-        const records = await model.load();
+        const records = await this.model.load();
         const tasks = this._normalize(records);
 
         if (!window.Gantt) {
@@ -76,15 +69,14 @@ export class GanttFreeRenderer extends Component {
             return;
         }
 
-        const viewMode = props.viewMode || this.props.viewMode || "Week";
         const options = {
             view_modes: ["Day", "Week", "Month"],
-            view_mode: viewMode,
+            view_mode: "Week",
             custom_popup_html: (task) =>
                 `<div class="o-gantt-popup"><h6>${task.name}</h6><p>${task._start} → ${task._end}</p></div>`,
             on_date_change: async (task, start, end) => {
                 try {
-                    if (model.state.workdays_only) {
+                    if (this.model.state.workdays_only) {
                         if (isWeekend(start)) {
                             start = snapToWorkday(start, "forward");
                         }
@@ -95,7 +87,7 @@ export class GanttFreeRenderer extends Component {
                             end = new Date(start);
                             end.setUTCDate(end.getUTCDate() + 1);
                         }
-                        const bar = this.gantt?.bar_map.get(task.id);
+                        const bar = this.gantt.bar_map.get(task.id);
                         if (bar) {
                             bar.set_start_end(start, end);
                         }
@@ -103,7 +95,7 @@ export class GanttFreeRenderer extends Component {
 
                     const startISO = toISO(start);
                     const endISO = toISO(end);
-                    await model.writeDateRange(task.id, startISO, endISO);
+                    await this.model.writeDateRange(task.id, startISO, endISO);
                     this.notification.add(_t("Fechas actualizadas"), { type: "success" });
                 } catch (e) {
                     this.notification.add(_t("Error al guardar fechas"), { type: "danger" });
@@ -115,7 +107,7 @@ export class GanttFreeRenderer extends Component {
         this.gantt = new window.Gantt(wrapper, tasks, options);
         wrapper.gantt = this.gantt;
 
-        if (model.state.workdays_only) {
+        if (this.model.state.workdays_only) {
             const svg = this.el.querySelector(".o_gantt_free_canvas svg");
             if (svg) {
                 const min = this.gantt.date_utils.start_of(this.gantt.gantt_start, "day");
@@ -123,9 +115,7 @@ export class GanttFreeRenderer extends Component {
                 const dayMs = 24 * 3600 * 1000;
                 const gridLayer = svg.querySelector(".grid-layer");
                 const grid = this.gantt.layers && this.gantt.layers.grid;
-                const gridHeight = grid
-                    ? grid.getBoundingClientRect().height
-                    : svg.getBoundingClientRect().height;
+                const gridHeight = grid ? grid.getBoundingClientRect().height : svg.getBoundingClientRect().height;
 
                 for (let t = +min; t <= +max; t += dayMs) {
                     const d = new Date(t);
@@ -135,10 +125,7 @@ export class GanttFreeRenderer extends Component {
                         next.setUTCDate(next.getUTCDate() + 1);
                         const x2 = this.gantt.get_x(next);
                         const width = Math.max(1, x2 - x);
-                        const rect = document.createElementNS(
-                            "http://www.w3.org/2000/svg",
-                            "rect"
-                        );
+                        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                         rect.setAttribute("x", x);
                         rect.setAttribute("y", 0);
                         rect.setAttribute("width", width);

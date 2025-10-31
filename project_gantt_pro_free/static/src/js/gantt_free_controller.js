@@ -1,25 +1,25 @@
 /** @odoo-module **/
 
-import { Component, useState } from "@odoo/owl";
+import { Component } from "@odoo/owl";
+import { useBus } from "@web/core/utils/hooks";
 
 export class GanttFreeController extends Component {
     setup() {
-        this.state = useState({ reloadKey: 0, mode: "Week" });
+        this.bus = useBus();
     }
 
-    reload() {
-        this.state.reloadKey += 1;
+    async reload() {
+        this.bus.trigger("gantt_free:reload");
     }
 
     setMode(ev) {
         const mode = ev.target.value;
-        this.state.mode = mode;
         const canvas = this.el.querySelector(".o_gantt_free_canvas");
         const gantt = canvas && canvas.gantt;
         if (gantt) {
             gantt.change_view_mode(mode);
         } else {
-            this.state.reloadKey += 1;
+            this.bus.trigger("gantt_free:reload");
         }
     }
 }
