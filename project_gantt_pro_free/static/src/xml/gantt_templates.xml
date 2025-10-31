@@ -1,0 +1,7 @@
+<templates xml:space="preserve">
+  <t t-name="project_gantt_pro_free.GanttRoot">
+    <div class="o_pgpf_container">
+      <!-- Placeholder container for the Gantt component -->
+    </div>
+  </t>
+</templates>
