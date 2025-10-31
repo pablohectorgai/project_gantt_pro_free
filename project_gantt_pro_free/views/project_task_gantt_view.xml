@@ -7,6 +7,7 @@
       <gantt_free date_start="planned_date_begin"
                   date_stop="date_deadline"
                   default_group_by="project_id"
+                  workdays_only="1"
                   string="Tasks Gantt (Free)"/>
     </field>
   </record>

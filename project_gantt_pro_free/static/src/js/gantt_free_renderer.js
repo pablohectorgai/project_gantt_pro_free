@@ -4,6 +4,22 @@ import { Component, onMounted, useExternalListener } from "@odoo/owl";
 import { useBus, useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 
+const isWeekend = (d) => {
+    const day = d.getUTCDay();
+    return day === 0 || day === 6;
+};
+const toISO = (d) => d.toISOString().substring(0, 10);
+
+function snapToWorkday(date, dir = "auto") {
+    const d = new Date(date);
+    const goNext = dir === "forward" || (dir === "auto" && isWeekend(d));
+    const goPrev = dir === "backward";
+    while (isWeekend(d)) {
+        d.setUTCDate(d.getUTCDate() + (goPrev ? -1 : 1));
+    }
+    return d;
+}
+
 export class GanttFreeRenderer extends Component {
     setup() {
         this.notification = useService("notification");
@@ -60,8 +76,25 @@ export class GanttFreeRenderer extends Component {
                 `<div class="o-gantt-popup"><h6>${task.name}</h6><p>${task._start} → ${task._end}</p></div>`,
             on_date_change: async (task, start, end) => {
                 try {
-                    const startISO = start.toISOString().substring(0, 10);
-                    const endISO = end.toISOString().substring(0, 10);
+                    if (this.model.state.workdays_only) {
+                        if (isWeekend(start)) {
+                            start = snapToWorkday(start, "forward");
+                        }
+                        if (isWeekend(end)) {
+                            end = snapToWorkday(end, "backward");
+                        }
+                        if (+end < +start) {
+                            end = new Date(start);
+                            end.setUTCDate(end.getUTCDate() + 1);
+                        }
+                        const bar = this.gantt.bar_map.get(task.id);
+                        if (bar) {
+                            bar.set_start_end(start, end);
+                        }
+                    }
+
+                    const startISO = toISO(start);
+                    const endISO = toISO(end);
                     await this.model.writeDateRange(task.id, startISO, endISO);
                     this.notification.add(_t("Fechas actualizadas"), { type: "success" });
                 } catch (e) {
@@ -73,6 +106,37 @@ export class GanttFreeRenderer extends Component {
 
         this.gantt = new window.Gantt(wrapper, tasks, options);
         wrapper.gantt = this.gantt;
+
+        if (this.model.state.workdays_only) {
+            const svg = this.el.querySelector(".o_gantt_free_canvas svg");
+            if (svg) {
+                const min = this.gantt.date_utils.start_of(this.gantt.gantt_start, "day");
+                const max = this.gantt.date_utils.end_of(this.gantt.gantt_end, "day");
+                const dayMs = 24 * 3600 * 1000;
+                const gridLayer = svg.querySelector(".grid-layer");
+                const grid = this.gantt.layers && this.gantt.layers.grid;
+                const gridHeight = grid ? grid.getBoundingClientRect().height : svg.getBoundingClientRect().height;
+
+                for (let t = +min; t <= +max; t += dayMs) {
+                    const d = new Date(t);
+                    if (isWeekend(d)) {
+                        const x = this.gantt.get_x(d);
+                        const next = new Date(d);
+                        next.setUTCDate(next.getUTCDate() + 1);
+                        const x2 = this.gantt.get_x(next);
+                        const width = Math.max(1, x2 - x);
+                        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                        rect.setAttribute("x", x);
+                        rect.setAttribute("y", 0);
+                        rect.setAttribute("width", width);
+                        rect.setAttribute("height", gridHeight);
+                        rect.setAttribute("fill", "rgba(0,0,0,0.06)");
+                        rect.setAttribute("pointer-events", "none");
+                        (gridLayer || svg).appendChild(rect);
+                    }
+                }
+            }
+        }
     }
 }
 

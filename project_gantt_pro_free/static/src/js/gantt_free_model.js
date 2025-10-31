@@ -12,6 +12,7 @@ export class GanttFreeModel {
             date_start: this.arch.date_start || "create_date",
             date_stop: this.arch.date_stop || "date_deadline",
             default_group_by: this.arch.default_group_by || null,
+            workdays_only: !!(this.arch.workdays_only && this.arch.workdays_only !== "0"),
             model: params.resModel,
             domain: params.domain || [],
             context: params.context || {},
