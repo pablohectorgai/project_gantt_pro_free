@@ -1,17 +1,11 @@
 /** @odoo-module **/
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component } from "@odoo/owl";
 
-class ProjectGanttFree extends Component {
-    setup() {
-        this.state = useState({});
-        onWillStart(async () => {
-            // TODO: load tasks/projects data via RPC if needed
-        });
-    }
-}
-
+class ProjectGanttFree extends Component {}
 ProjectGanttFree.template = "project_gantt_pro_free.GanttRoot";
+
+console.log("[PGPF] client action JS cargado ✅");
 
 registry.category("actions").add("project_gantt_pro_free.gantt", (env, props) => {
     return { Component: ProjectGanttFree, props };
