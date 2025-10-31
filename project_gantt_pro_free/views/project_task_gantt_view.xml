@@ -1,0 +1,26 @@
+<odoo>
+  <!-- Vista Gantt Free sobre project.task -->
+  <record id="view_project_task_gantt_free" model="ir.ui.view">
+    <field name="name">project.task.gantt_free</field>
+    <field name="model">project.task</field>
+    <field name="arch" type="xml">
+      <gantt_free date_start="planned_date_begin"
+                  date_stop="date_deadline"
+                  default_group_by="project_id"
+                  string="Tasks Gantt (Free)"/>
+    </field>
+  </record>
+
+  <!-- Agregar 'gantt_free' al view_mode del action principal de tareas -->
+  <record id="project.action_view_task" model="ir.actions.act_window">
+    <field name="view_mode">kanban,tree,form,gantt_free,calendar,pivot,graph,activity</field>
+  </record>
+
+  <!-- Forzar prioridad de la vista para que aparezca correctamente -->
+  <record id="view_project_task_gantt_free_aw" model="ir.actions.act_window.view">
+    <field name="act_window_id" ref="project.action_view_task"/>
+    <field name="view_id" ref="view_project_task_gantt_free"/>
+    <field name="view_mode">gantt_free</field>
+    <field name="sequence">30</field>
+  </record>
+</odoo>
